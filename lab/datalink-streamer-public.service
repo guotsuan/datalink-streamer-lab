@@ -1,0 +1,20 @@
+[Unit]
+Description=Password-gated public DataLink lab entrance
+After=datalink-streamer-lab.service
+Requires=datalink-streamer-lab.service
+PartOf=datalink-streamer-lab.service
+
+[Service]
+WorkingDirectory=/home/gq/datalink-streamer-lab
+ExecStart=/home/gq/datalink-streamer-lab/.venv/bin/python -m uvicorn public_gateway:app --host 64.176.188.89 --port 18080 --no-access-log --no-proxy-headers --limit-concurrency 16 --timeout-keep-alive 5
+RuntimeMaxSec=infinity
+Restart=on-failure
+RestartSec=8
+UMask=0077
+NoNewPrivileges=true
+MemoryMax=180M
+StandardOutput=append:/home/gq/datalink-streamer-lab/logs/public.log
+StandardError=append:/home/gq/datalink-streamer-lab/logs/public.log
+
+[Install]
+WantedBy=default.target

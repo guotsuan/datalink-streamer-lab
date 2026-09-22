@@ -1,0 +1,16 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv*/
+.env
+.env.*
+public-access.json
+public-access-credentials.txt
+*credentials*
+*.pem
+*.key
+lab/storage/
+lab/logs/
+lab/evidence/
+lab/upstream/
+lab/.install/

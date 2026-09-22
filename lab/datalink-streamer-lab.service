@@ -1,0 +1,18 @@
+[Unit]
+Description=Private DataLink and Product Streamer test laboratory
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/gq/datalink-streamer-lab
+ExecStart=/home/gq/datalink-streamer-lab/.venv/bin/python /home/gq/datalink-streamer-lab/supervise.py
+Restart=on-failure
+RestartSec=8
+TimeoutStopSec=45
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=true
+MemoryMax=650M
+
+[Install]
+WantedBy=default.target
