@@ -5,6 +5,8 @@ identifier (DID), discover a download address, retrieve the product, and verify
 the bytes independently. This repository contains the laboratory integration
 code and tests, not a replacement implementation of SKA DataLink or Streamer.
 
+中文说明、部署与测试步骤：[中文部署指南](docs/DEPLOYMENT_ZH.md)。
+
 ## Software baseline
 
 | Component | Recorded version / source |
@@ -46,6 +48,7 @@ Upstream source and archives are not redistributed here.
 | `scripts/build_speed_report.py` | Build one-page PDF and Markdown reports from benchmark JSON (requires reportlab and pypdf) |
 | `scripts/export_benchmark_evidence.py` | Export selected measurements without raw iperf host/session metadata |
 | `docs/DEPLOYMENT.md` | Deployment, configuration, operations and safety notes |
+| `docs/DEPLOYMENT_ZH.md` | Chinese explanation, existing-VM maintenance, fresh deployment and benchmark instructions |
 | `docs/TEST_RESULTS.md` | Historical test summary with exact counts and limitations |
 | `docs/DataLink_Streamer_Test_Report_EN.pdf` | Six-page English functional report with screenshots and detailed evidence |
 | `docs/large-fits-benchmark.md` | Browser/Python benchmark instructions and VM-specific prerequisites |
