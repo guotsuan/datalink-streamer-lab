@@ -14,7 +14,8 @@ code and tests, not a replacement implementation of SKA DataLink or Streamer.
 | Server runtime | Rocky Linux **10.2**, Python **3.13.15**; three isolated virtual environments |
 | Portal | FastAPI **0.141.1**, Uvicorn **0.53.0**, HTTPX **0.28.1** |
 | Official-service web runtime | FastAPI **0.124.4**, Uvicorn **0.34.3**, HTTPX **0.28.1** |
-| External test client | Python **3.9+**, standard library only |
+| External functional test client | Python **3.9+**, standard library only |
+| Throughput client | Python **3.9+**, iperf3 and SSH; recorded client iperf3 **3.22**, VM iperf3 **3.17.1** |
 
 Official upstream sources (BSD-3-Clause; retain their own licensing):
 
@@ -36,12 +37,20 @@ Upstream source and archives are not redistributed here.
 | `lab/supervise.py`, `lab/*.service` | Process supervision and original VM systemd unit examples |
 | `lab/provision_public.py`, `lab/persist_public_access.py` | Explicit, VM-specific public-access provisioning helpers |
 | `lab/test_public_e2e.py` | External discovery, download, integrity and diagnostic checks |
+| `lab/large_fixture.py`, `lab/static/large.js` | Optional approximately 1 TB sparse FITS and bounded-memory browser download benchmark |
+| `lab/static/download_large.py` | iperf3 baseline, streaming download and independent source-range SHA-256 comparison |
+| `lab/test_large_fixture.py`, `lab/test_download_large.py` | Sparse fixture and checksum/comparison regression tests |
 | `lab/smoke.py`, `lab/public_smoke.py` | Internal service suite and public smoke checks |
 | `lab/test_public_e2e_unit.py`, `lab/test_public_gateway.py` | Offline regression checks for the client and login gateway |
 | `scripts/prepare_environment.py` | Install pinned environments in a fresh checkout; does not start or expose services |
+| `scripts/build_speed_report.py` | Build one-page PDF and Markdown reports from benchmark JSON (requires reportlab and pypdf) |
+| `scripts/export_benchmark_evidence.py` | Export selected measurements without raw iperf host/session metadata |
 | `docs/DEPLOYMENT.md` | Deployment, configuration, operations and safety notes |
 | `docs/TEST_RESULTS.md` | Historical test summary with exact counts and limitations |
-| `docs/DataLink_Streamer_Test_Report_EN.pdf` | Two-page English report |
+| `docs/DataLink_Streamer_Test_Report_EN.pdf` | Six-page English functional report with screenshots and detailed evidence |
+| `docs/large-fits-benchmark.md` | Browser/Python benchmark instructions and VM-specific prerequisites |
+| `docs/DataLink_Streamer_10GB_SHA256_Report_EN.pdf` | One-page 10 GB download and SHA-256 report |
+| `docs/evidence/10GB_SHA256_20261005.json` | Reviewed benchmark evidence with host details and iperf session identifier omitted |
 
 ## Test coverage and purpose
 
@@ -83,10 +92,42 @@ Exit codes: `0` = functional checks pass (review warnings); `1` = a failure or
 dependency skip; `--strict` returns `2` when diagnostic warnings remain.
 Use `--skip-server-suite` to omit the optional internal test run.
 
+## Run the download benchmark
+
+This separate client first measures **10 seconds of reverse single-stream TCP
+iperf3** (VM sends, client receives), then downloads through DataLink/Streamer.
+The default download is **1 GB (1,000,000,000 bytes)** with no total time limit.
+Blocks are hashed and discarded, so no large output file is needed. SHA-256 is
+compared with an independent SSH read of the exact source range before the tests.
+
+```sh
+# Default 1 GB:
+python3 lab/static/download_large.py --report comparison_1GB.json
+# 10 GB, as used for the recorded integrity test:
+python3 lab/static/download_large.py --bytes 10000000000 --report comparison_10GB.json
+```
+
+Requires local iperf3 and SSH on macOS/Linux, existing key-based SSH access to
+`gq@64.176.188.89`, and remote Python 3/iperf3/timeout. The script uses a one-off
+iperf server and a source-restricted firewalld rule that expires after 60 seconds
+and is removed at test completion. It needs passwordless sudo for that temporary
+rule. Download timing starts after reference hashing and iperf finish. The
+10-second socket inactivity timeout detects stalled connections; there is no
+total download-duration cap. iperf generates additional traffic beyond the
+requested HTTP sample. Details: [benchmark guide](docs/large-fits-benchmark.md).
+
+`--skip-iperf` selects download-only mode; it still prepares the source checksum
+over SSH unless a trusted `--expected-sha256` for that exact range is supplied.
+`--output NEW_FILE` saves bytes instead of discarding them. A range of the 1 TB
+source is a partial FITS image, not a standalone complete FITS file.
+
 ## Local regression tests
 
 ```sh
 python3 -m unittest discover -s lab -p test_public_e2e_unit.py -v
+python3 -m unittest discover -s lab -p test_large_fixture.py -v
+python3 -m unittest discover -s lab -p test_download_large.py -v
+node scripts/test_large_ui.cjs
 # Requires FastAPI and HTTPX; after environment preparation:
 lab/.venv/bin/python lab/test_public_gateway.py
 ```
@@ -105,11 +146,24 @@ Three warning categories remain: response MIME, missing DataLink `standardID`
 INFO, and an unusable external authentication challenge/discovery address.
 Do not interpret these counts as IVOA certification or production readiness.
 
+On **5 October 2026**, a complete **10 GB range** was downloaded in **576.548 s**:
+**138.757 Mbps / 16.541 MiB/s**, compared with **137.746 Mbps** in the preceding
+iperf3 test. Both received and independently computed source-range SHA-256 were
+`84b841e5ef821e36864a1c02573d509d879aeea3d9c32ed06b69faddc391e032`.
+Transfer length, header/zero-data checks and SHA-256 comparison passed. Read the
+[one-page report](docs/DataLink_Streamer_10GB_SHA256_Report_EN.pdf) and
+[editable report](docs/DataLink_Streamer_10GB_SHA256_Report_EN.md).
+The earlier [1 GB report](docs/DataLink_Streamer_1GB_Benchmark_EN.pdf) records a
+separate user-supplied run without SHA-256; do not combine their results.
+
 ## Boundaries and safety
 
 The official service processes, VOTables, byte streams and TAR creation are real.
 DMAPI, IAM, PAPI and colocated-service discovery are fixtures. There is no real
-SCAPI, Rucio, StoRM or federated SRCNet integration. Four synthetic files only.
+SCAPI, Rucio, StoRM or federated SRCNet integration. Four small synthetic fixtures
+plus an optional sparse FITS of **1,000,000,005,120 logical bytes** are supported.
+The sparse benchmark measures the VM-to-client network and streaming stack;
+it does not measure physical disk throughput. A full 1 TB transfer remains untested.
 
 The literals `lab-service-token`, `lab-denied-token`, `lab-raw-token`,
 `lab-dm-token` and `synthetic-not-secret` are public mock values, not credentials.

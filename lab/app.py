@@ -22,6 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.background import BackgroundTask
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from fixtures import ROOT, STORAGE, SCOPE, DL_COMMIT, PS_COMMIT, contents, manifest, public_base
+from large_fixture import NAME as LARGE_NAME, SIZE as LARGE_SIZE, describe as large_info
 
 app = FastAPI(title="DataLink / Streamer test laboratory")
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1"])
@@ -72,6 +73,14 @@ async def status():
         return await asyncio.gather(check("DataLink", DL), check("Streamer", PS))
 
 
+@app.get('/lab/large/info')
+async def large_product_info():
+    result = large_info()
+    if result is None:
+        raise HTTPException(404, 'Large fixture not provisioned')
+    return result
+
+
 # Simulated IAM / DMAPI / PAPI. No real credentials accepted or forwarded.
 @app.post("/mock/token")
 async def mock_token():
@@ -106,6 +115,8 @@ def names_for(scope, name):
         raise HTTPException(404, "Unknown synthetic namespace")
     if name == "dataset":
         return ["image.fits", "readme.txt", "metadata.json"]
+    if name == LARGE_NAME and large_info() is not None:
+        return [name]
     if name not in contents():
         raise HTTPException(404, "Unknown synthetic DID")
     return [name]
@@ -126,8 +137,8 @@ async def locate(scope: str, name: str, request: Request):
 @app.get("/mock/v1/metadata/{scope}/{name:path}")
 async def metadata(scope: str, name: str):
     names = names_for(scope, name)
-    return {"obs_id": "Synthetic laboratory fixture", "content_type": "application/octet-stream",
-            "content_length": sum(len(contents()[n]) for n in names), "datalinks": "[]"}
+    return {"obs_id": "Synthetic laboratory fixture", "content_type": "application/fits" if name == LARGE_NAME else "application/octet-stream",
+            "content_length": sum(LARGE_SIZE if n == LARGE_NAME else len(contents()[n]) for n in names), "datalinks": "[]"}
 
 
 @app.get("/fixtures/{scope}/{name}")
@@ -167,6 +178,8 @@ def check_paths(body, content_type):
     if len(paths) > 32:
         raise HTTPException(400, "Lab gateway: too many product references")
     permitted = {(STORAGE / SCOPE / name).resolve() for name in contents()}
+    if large_info() is not None:
+        permitted.add(STORAGE / SCOPE / LARGE_NAME)
     permitted.add((STORAGE / SCOPE / "dataset").resolve())
     for path in paths:
         resolved = path.resolve()
@@ -193,6 +206,7 @@ async def proxy(service: str, path: str, request: Request):
     if service == "streamer" and body:
         check_paths(body, ct)
     headers = {k: request.headers[k] for k in ("content-type", "authorization", "range", "if-range") if k in request.headers}
+    headers['accept-encoding'] = 'identity'
     client = httpx.AsyncClient(timeout=30, trust_env=False)
     try:
         req = client.build_request(request.method, (DL if service == "datalink" else PS) + "/" + path,

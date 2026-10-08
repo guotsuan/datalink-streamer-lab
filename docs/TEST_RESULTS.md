@@ -38,8 +38,8 @@
 This is a working synthetic DID-to-byte delivery baseline. Official DataLink and
 Streamer processes are real; IAM, DMAPI, PAPI and colocated-service discovery are
 mocked. Synthetic audience/permission checks are not real JWT verification.
-No real SCAPI/Rucio/StoRM integration, full schema validation, load benchmark,
-large-file test, interrupted/resumed transfer or dependency-recovery acceptance
+No real SCAPI/Rucio/StoRM integration, full schema validation, concurrency/load,
+interrupted/resumed transfer or dependency-recovery acceptance
 is claimed. The partial-byte check uses a Streamer POST; RFC 9110 specifies Range
 handling for GET, so this is product behavior rather than general Range conformance.
 
@@ -51,3 +51,42 @@ test environment with FastAPI 0.141.1 and HTTPX 0.28.1; no live server calls wer
 The environment helper passed a dry run; it did not install or start services.
 These checks are separate from the recorded 21 September live results. A fresh
 end-to-end deployment from this repository has not been verified.
+
+## October large-range benchmark
+
+The 5 October 2026 test transferred exactly **10,000,000,000 bytes** from the
+approximately 1 TB sparse FITS via DataLink and Product Streamer. A 10-second
+reverse single-stream iperf3 baseline ran immediately before the HTTP download.
+
+| Measurement | Recorded result |
+|---|---:|
+| iperf3 receiver throughput | 137.746 Mbps |
+| HTTP download throughput | 138.757 Mbps / 16.541 MiB/s |
+| Download time | 576.548 s |
+| Received / requested bytes | 10,000,000,000 / 10,000,000,000 |
+| Download / iperf3 throughput | 100.73% |
+| SHA-256 compared with independent source-range read | PASS |
+| Synthetic header / zero-data check | PASS |
+
+Digest: `84b841e5ef821e36864a1c02573d509d879aeea3d9c32ed06b69faddc391e032`.
+The source digest was computed over SSH before the network tests; the received
+digest was computed incrementally during download. Bytes were discarded after
+checking. The published [JSON evidence](evidence/10GB_SHA256_20261005.json)
+retains measurements while omitting the client hostname, addresses and iperf
+session identifier. Full original evidence remains with the owner.
+
+[PDF report](DataLink_Streamer_10GB_SHA256_Report_EN.pdf) and
+[Markdown report](DataLink_Streamer_10GB_SHA256_Report_EN.md).
+This covers the complete **10 GB range**, not a full 1 TB transfer, physical disk
+I/O or CNSRC-node performance. Sequential tests differ in duration and may
+encounter varying network conditions or port policies.
+
+## Publication checks, 8 October 2026
+
+The export passed 9 external-client unit tests, 3 sparse-fixture tests and 5
+streaming/checksum tests (including rejection of a reference-hash mismatch).
+The browser benchmark harness passed 3 scenarios: bounded sample, incorrect
+length and declined full-transfer confirmation. The isolated login gateway
+regression passed 13 checks with FastAPI 0.141.1 and HTTPX 0.28.1. JavaScript syntax checks and
+the environment-preparation dry run passed. These are publication regression
+checks; the recorded 10 GB download was not repeated for this update.

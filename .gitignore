@@ -14,3 +14,7 @@ lab/logs/
 lab/evidence/
 lab/upstream/
 lab/.install/
+comparison*.json
+speed.json
+*.fits
+*.bin

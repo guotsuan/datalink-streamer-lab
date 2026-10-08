@@ -27,6 +27,11 @@ $('resolve').addEventListener('click', async () => {
   } catch(e) { fail(e); } finally { $('resolve').disabled = false; }
 });
 $('download').addEventListener('click', async () => {
+  if (resolvedDid === 'lab.test:large-1tb.fits') {
+    $('message').textContent = 'Use the Large FITS speed test below (bounded memory), or its Python client. The normal download button is only for small fixtures.';
+    document.getElementById('large-test').scrollIntoView({behavior:'smooth'});
+    return;
+  }
   $('download').disabled = true; $('message').textContent = 'Requesting bytes from the official Streamer…';
   try {
     const headers = {'Content-Type':'application/xml'};

@@ -1,0 +1,36 @@
+{
+  "started_at_utc": "2026-10-05T08:25:19.779012+00:00",
+  "base_url": "http://64.176.188.89:18080",
+  "did": "lab.test:large-1tb.fits",
+  "bytes": 10000000000,
+  "expected": 10000000000,
+  "complete": true,
+  "stop_reason": "complete",
+  "full_1tb_test": false,
+  "seconds": 576.548,
+  "average_MiB_s": 16.541,
+  "average_Mbit_s": 138.757,
+  "first_byte_seconds": 1.287,
+  "sample_header_and_zero_data_check": true,
+  "sha256": "84b841e5ef821e36864a1c02573d509d879aeea3d9c32ed06b69faddc391e032",
+  "sha256_matches": true,
+  "download_to_iperf_percent": 100.73,
+  "comparison_note": "Sequential single-stream sample, not a maximum-capacity or full-1-TB certification; HTTP includes request setup and content checks. Different ports may encounter different network policy.",
+  "sha256_reference": {
+    "sha256": "84b841e5ef821e36864a1c02573d509d879aeea3d9c32ed06b69faddc391e032",
+    "bytes": 10000000000,
+    "range": "bytes=0-9999999999",
+    "method": "independent SSH read of source file"
+  },
+  "iperf": {
+    "started_at_utc": "2026-10-05T08:25:05.100979+00:00",
+    "direction": "server-to-client",
+    "parallel_streams": 1,
+    "transport": "direct TCP (not SSH tunnel)",
+    "Mbit_s": 137.746,
+    "MiB_s": 16.421,
+    "bytes": 172228608,
+    "seconds": 10.002703
+  },
+  "publication_note": "Selected original measurements; raw iperf client host, addresses and session identifier omitted."
+}

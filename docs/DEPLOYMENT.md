@@ -102,5 +102,36 @@ Do not copy `public-access.json` or `public-access-credentials.txt` into Git.
 
 The public gateway adds origin, route and synthetic-path restrictions. These do
 not establish upstream storage-boundary security or real OIDC/JWT validation.
-Real discovery/authentication, interrupted-transfer recovery, large-file/load
-tests and dependency-failure recovery remain outside the recorded acceptance.
+Real discovery/authentication, interrupted-transfer recovery, concurrency/load
+and dependency-failure recovery remain outside the recorded acceptance. Selected
+large-range tests were added in October; the 10 GB result is recorded separately.
+
+## Optional large fixture and network benchmark
+
+With the private environment prepared, create the sparse file on the server:
+
+```sh
+lab/.venv/bin/python lab/large_fixture.py
+```
+
+The helper creates `lab/storage/lab.test/large-1tb.fits` exclusively, or validates
+the expected size/header if it already exists. The logical size is
+1,000,000,005,120 bytes, with only the header allocated on a filesystem supporting
+sparse files. All transmitted holes become actual zero bytes on the network.
+The existing small fixture catalogue and three-file TAR remain separate.
+
+The portal exposes optional metadata at `/lab/large/info`; the authenticated
+browser page offers a streaming discard benchmark and the Python client. Normal
+small-file download controls redirect the large DID to the dedicated benchmark.
+The browser keeps its 256 MiB/30 s and 1 GiB/120 s sample settings; the **Python**
+client defaults to 1 GB with no total time limit and supports the 10 GB test.
+
+For repeat measurements, install iperf3 locally and on the VM (for this Rocky
+Linux VM: `sudo dnf install iperf3`). Do not enable a permanent iperf service.
+The Python client requires key-based SSH and temporary firewall-rule permissions.
+Its independent source checksum path is fixed to the original deployment:
+`/home/gq/datalink-streamer-lab/storage/lab.test/large-1tb.fits`. A fresh checkout
+uses a different path; update the benchmark's source path, SSH destination,
+allowed origin and bind address deliberately before targeting another deployment.
+Review [large-fits-benchmark.md](large-fits-benchmark.md) for exact commands and
+the distinction between browser and Python behavior.

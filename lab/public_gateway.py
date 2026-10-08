@@ -19,6 +19,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from starlette.background import BackgroundTask
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from fixtures import ROOT
+from large_fixture import NAME as LARGE_NAME
 
 CONFIG = json.loads((ROOT / "public-access.json").read_text())
 ORIGIN = CONFIG["origin"]
@@ -137,6 +138,7 @@ async def authenticate(request: Request):
 
 
 GET_PATHS = {"/", "/static/style.css", "/static/app.js", "/static/sha256.js", "/lab/info", "/lab/status",
+             "/lab/large/info", "/static/large.js", "/static/download_large.py",
              "/datalink/v1/links", "/datalink/v1/ping", "/datalink/v1/health",
              "/streamer/v1/ping", "/streamer/v1/health"}
 POST_PATHS = {"/lab/run", "/streamer/v1/data/product"}
@@ -146,7 +148,7 @@ POST_PATHS = {"/lab/run", "/streamer/v1/data/product"}
 async def forward(path: str, request: Request):
     target = "/" + path
     allowed_report = re.fullmatch(r"/lab/reports/[0-9a-f-]{36}\.json", target)
-    allowed_fixture = target in {"/fixtures/lab.test/" + n for n in ("image.fits", "readme.txt", "metadata.json", "range.bin")}
+    allowed_fixture = target in {"/fixtures/lab.test/" + n for n in ("image.fits", "readme.txt", "metadata.json", "range.bin", LARGE_NAME)}
     if request.method == "GET" and target not in GET_PATHS and not allowed_report and not allowed_fixture:
         raise HTTPException(404)
     if request.method == "POST" and target not in POST_PATHS:
@@ -160,6 +162,7 @@ async def forward(path: str, request: Request):
     client = httpx.AsyncClient(timeout=60, trust_env=False)
     try:
         headers = {k: request.headers[k] for k in ("content-type", "authorization", "range", "if-range") if k in request.headers}
+        headers['accept-encoding'] = 'identity'
         req = client.build_request(request.method, "http://127.0.0.1:18080" + target,
                                    params=request.query_params, content=body, headers=headers)
         upstream = await client.send(req, stream=True)
